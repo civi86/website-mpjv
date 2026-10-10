@@ -4,18 +4,18 @@
   --surface-hover: #181818;
   --border: #222;
   --border-strong: #2e2e2e;
-
   --text: #f0f0f0;
   --text-muted: #888;
   --text-dim: #555;
-
   --accent: #e8e8e8;
-  --accent-dim: #666;
-
   --steam: #66c0f4;
   --itch: #fa5c5c;
   --spotify: #1db954;
   --bandcamp: #629aa9;
+  --mpjv-red: #e63946;
+  --iota-yellow: #fbbf24;
+  --panel-bg: #0d0d0d;
+  --card-bg: #101010;
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -23,7 +23,6 @@
 html {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  scroll-behavior: smooth;
 }
 
 body {
@@ -36,7 +35,27 @@ body {
   overflow-x: hidden;
 }
 
-.container { max-width: 1080px; margin: 0 auto; padding: 0 1.5rem; }
+.container { max-width: 1280px; margin: 0 auto; padding: 0 1.5rem; }
+
+/* ============================================
+   CRT-PUTKEN REUNAKAARET (koko sivu)
+   ============================================ */
+.crt-frame {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 9997;
+  background:
+    radial-gradient(
+      ellipse 100% 100% at center,
+      transparent 70%,
+      rgba(0, 0, 0, 0.5) 90%,
+      rgba(0, 0, 0, 0.9) 100%
+    );
+  box-shadow:
+    inset 0 0 120px rgba(0, 0, 0, 0.8),
+    inset 0 0 40px rgba(0, 0, 0, 0.4);
+}
 
 /* ============================================
    HERO
@@ -47,116 +66,198 @@ body {
   display: flex;
   flex-direction: column;
   justify-content: flex-end;
+  padding: 6rem 0 3rem;
   overflow: hidden;
-  padding-bottom: 5rem;
 }
 
-.hero-3d {
+.hero::after {
+  content: "";
   position: absolute;
-  inset: 0;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 75%;
+  background: linear-gradient(
+    to top,
+    var(--bg) 0%,
+    var(--bg) 20%,
+    rgba(10, 10, 10, 0.95) 40%,
+    rgba(10, 10, 10, 0.6) 65%,
+    rgba(10, 10, 10, 0) 100%
+  );
+  pointer-events: none;
   z-index: 1;
 }
 
-.ring-wrapper {
+.carousel-3d {
   position: absolute;
   inset: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  perspective: 900px;
+  padding-bottom: 8rem;
+  perspective: 1800px;
   perspective-origin: 50% 50%;
+  user-select: none;
+  -webkit-user-select: none;
+  pointer-events: none;
 }
 
-.ring {
+.carousel-ring {
   position: relative;
   width: 0;
   height: 0;
   transform-style: preserve-3d;
 }
 
-.img {
+.carousel-slide {
   position: absolute;
   top: 50%;
   left: 50%;
-  width: 200px;
-  height: 120px;
-  margin: -60px 0 0 -100px;
+  width: 150px;
+  height: 150px;
+  margin: -75px 0 0 -75px;
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
-  border-radius: 6px;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.7);
+  border-radius: 5px;
+  box-shadow: 0 12px 35px rgba(0, 0, 0, 0.6);
   backface-visibility: hidden;
   cursor: pointer;
+  pointer-events: auto;
+  transition: box-shadow 0.2s ease;
 }
 
-.dragger {
-  position: absolute;
-  inset: 0;
-  cursor: grab;
-  z-index: 5;
-}
-
-.dragger:active {
-  cursor: grabbing;
+.carousel-slide:hover {
+  box-shadow: 0 12px 45px rgba(255, 255, 255, 0.2);
 }
 
 .hero-content {
   position: relative;
   z-index: 2;
   pointer-events: none;
+  width: 100%;
 }
 
-.hero-content header {
-  padding: 0;
-  border-bottom: none;
-  margin-bottom: 0;
+.hero-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 0.75rem;
+  align-items: stretch;
   pointer-events: auto;
 }
 
-.hero-content h1 {
-  font-size: clamp(2.5rem, 6vw, 4rem);
+.hero-card {
+  display: flex;
+  flex-direction: column;
+  padding: 1.25rem;
+  background: var(--card-bg);
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow:
+    0 0 20px rgba(232, 232, 232, 0.03),
+    0 0 40px rgba(232, 232, 232, 0.02);
+  transition: box-shadow 0.3s ease, border-color 0.3s ease;
+}
+
+.hero-card:hover {
+  box-shadow:
+    0 0 30px rgba(232, 232, 232, 0.08),
+    0 0 60px rgba(232, 232, 232, 0.04);
+  border-color: rgba(255, 255, 255, 0.15);
+}
+
+.hero-card-label {
+  font-size: 0.68rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  color: var(--text-muted);
+  margin-bottom: 0.9rem;
+}
+
+.hero-card-about h1 {
+  font-size: clamp(2rem, 3.5vw, 2.6rem);
   font-weight: 500;
   letter-spacing: -0.04em;
   line-height: 1;
-  margin-bottom: 1rem;
+  margin-bottom: 1.25rem;
   color: var(--text);
-  text-shadow: 0 2px 30px rgba(0, 0, 0, 0.8);
+  text-shadow:
+    0 0 20px rgba(232, 232, 232, 0.2),
+    0 0 40px rgba(232, 232, 232, 0.08);
+  animation: crt-glow 4s ease-in-out infinite;
 }
 
-.hero-content .tagline {
+@keyframes crt-glow {
+  0%, 100% { text-shadow: 0 0 20px rgba(232, 232, 232, 0.15); }
+  50%      { text-shadow: 0 0 30px rgba(232, 232, 232, 0.25); }
+}
+
+.hero-card-about .tagline {
   color: var(--text-muted);
-  font-size: 1.05rem;
-  max-width: 42ch;
-  margin-bottom: 2rem;
-  text-shadow: 0 2px 20px rgba(0, 0, 0, 0.8);
+  font-size: 0.95rem;
+  line-height: 1.55;
+}
+
+.hero-card-about .bio {
+  color: var(--text-dim);
+  font-size: 0.85rem;
+  line-height: 1.6;
+  margin-bottom: 0.75rem;
+}
+
+.hero-card-about .bio-muted {
+  color: var(--text-dim);
+  font-size: 0.8rem;
+  font-style: italic;
+  margin-bottom: 1.5rem;
+  opacity: 0.85;
+}
+
+.hero-divider {
+  height: 1px;
+  background: var(--border);
+  margin: 1rem 0;
 }
 
 .hero-actions {
   display: flex;
-  gap: 0.75rem;
+  gap: 0.5rem;
   flex-wrap: wrap;
+  margin-top: auto;
+  margin-bottom: 1.25rem;
+  padding-top: 1.5rem;
 }
 
 .hero-btn {
   display: inline-flex;
   align-items: center;
-  padding: 0.7rem 1.4rem;
+  justify-content: center;
+  flex: 1;
+  padding: 0.6rem 0.9rem;
   border-radius: 6px;
-  font-size: 0.85rem;
+  font-size: 0.78rem;
   font-weight: 500;
   text-decoration: none;
   color: var(--text);
   background: rgba(255, 255, 255, 0.06);
   border: 1px solid var(--border-strong);
-  backdrop-filter: blur(10px);
-  transition: all 0.2s ease;
+  transition: all 0.3s ease;
   letter-spacing: 0.02em;
+  min-width: 0;
+  white-space: nowrap;
+  box-shadow:
+    0 0 10px rgba(232, 232, 232, 0.02),
+    inset 0 1px 0 rgba(255, 255, 255, 0.04);
 }
 
 .hero-btn:hover {
   background: rgba(255, 255, 255, 0.12);
   border-color: var(--text-muted);
+  box-shadow:
+    0 0 20px rgba(232, 232, 232, 0.1),
+    0 0 40px rgba(232, 232, 232, 0.04);
   transform: translateY(-1px);
 }
 
@@ -164,12 +265,123 @@ body {
   background: var(--text);
   color: var(--bg);
   border-color: var(--text);
+  box-shadow:
+    0 0 20px rgba(232, 232, 232, 0.15),
+    0 0 40px rgba(232, 232, 232, 0.05);
 }
 
 .hero-btn.primary:hover {
   background: var(--text-muted);
   border-color: var(--text-muted);
+  box-shadow:
+    0 0 30px rgba(232, 232, 232, 0.25),
+    0 0 60px rgba(232, 232, 232, 0.1);
 }
+
+.hero-socials {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: auto;
+}
+
+.hero-socials-group {
+  display: flex;
+  gap: 0.35rem;
+  align-items: center;
+}
+
+.hero-social {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  color: var(--text-muted);
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border-strong);
+  text-decoration: none;
+  transition: all 0.3s ease;
+  cursor: pointer;
+  box-shadow: 0 0 8px rgba(232, 232, 232, 0.02);
+}
+
+.hero-social:hover {
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.12);
+  border-color: var(--text-muted);
+  box-shadow:
+    0 0 15px rgba(232, 232, 232, 0.1),
+    0 0 30px rgba(232, 232, 232, 0.05);
+  transform: translateY(-1px);
+}
+
+.hero-social svg { display: block; }
+
+.hero-card-image {
+  display: block;
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  border-radius: 6px;
+  overflow: hidden;
+  background: var(--surface);
+  margin-bottom: 0.75rem;
+  text-decoration: none;
+  transition: transform 0.2s ease;
+}
+
+.hero-card-image:hover { transform: scale(1.02); }
+
+.hero-card-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.hero-card-title {
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--text);
+  margin-bottom: 0.2rem;
+  line-height: 1.3;
+  letter-spacing: -0.01em;
+}
+
+.hero-card-meta {
+  font-size: 0.75rem;
+  color: var(--text-dim);
+  margin-bottom: 0.9rem;
+}
+
+.hero-card-links {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  margin-top: auto;
+}
+
+.hero-card-links a {
+  font-size: 0.68rem;
+  font-weight: 500;
+  color: var(--text-muted);
+  text-decoration: none;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  transition: color 0.15s ease;
+  border-bottom: 1px solid transparent;
+  padding-bottom: 1px;
+}
+
+.hero-card-links a:hover {
+  color: var(--text);
+  border-bottom-color: var(--text-dim);
+}
+
+.hero-card-links a.spotify:hover  { color: var(--spotify);  border-bottom-color: var(--spotify); }
+.hero-card-links a.bandcamp:hover { color: var(--bandcamp); border-bottom-color: var(--bandcamp); }
 
 /* ============================================
    SECTIONS
@@ -187,12 +399,170 @@ h2 {
 }
 
 /* ============================================
+   RETRO CRT -PANEELI
+   ============================================ */
+.crt-panel {
+  position: relative;
+  padding: 1.75rem 1.5rem;
+  margin-bottom: 5rem;
+  background: var(--panel-bg);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.crt-panel::after {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  border-radius: 12px;
+  padding: 1px;
+  background: linear-gradient(
+    135deg,
+    rgba(232, 232, 232, 0.3),
+    rgba(232, 232, 232, 0.1),
+    transparent 60%
+  );
+  -webkit-mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.crt-panel h2 {
+  padding-top: 0;
+  margin-bottom: 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-size: 0.85rem;
+  letter-spacing: 0.2em;
+}
+
+.crt-panel h2 .crt-prefix {
+  color: var(--text-dim);
+  font-weight: 400;
+  font-size: 0.75rem;
+  opacity: 0.7;
+}
+
+/* MpjV-paneelin aksentti — punainen hehku */
+.crt-panel.mpjv h2 {
+  color: var(--mpjv-red);
+  text-shadow: 0 0 12px rgba(230, 57, 70, 0.6);
+}
+
+.crt-panel.mpjv::after {
+  background: linear-gradient(
+    135deg,
+    rgba(230, 57, 70, 0.5),
+    rgba(230, 57, 70, 0.15),
+    transparent 60%
+  );
+  box-shadow:
+    0 0 20px rgba(230, 57, 70, 0.15),
+    0 0 40px rgba(230, 57, 70, 0.08);
+}
+
+/* Iota Dra -paneelin aksentti — keltainen hehku */
+.crt-panel.iota h2 {
+  color: var(--iota-yellow);
+  text-shadow: 0 0 12px rgba(251, 191, 36, 0.6);
+}
+
+.crt-panel.iota::after {
+  background: linear-gradient(
+    135deg,
+    rgba(251, 191, 36, 0.5),
+    rgba(251, 191, 36, 0.15),
+    transparent 60%
+  );
+  box-shadow:
+    0 0 20px rgba(251, 191, 36, 0.15),
+    0 0 40px rgba(251, 191, 36, 0.08);
+}
+
+/* Games-paneelin aksentti — valkoinen hehku */
+.crt-panel.games h2 {
+  color: var(--text);
+  text-shadow: 0 0 12px rgba(232, 232, 232, 0.5);
+}
+
+.crt-panel.games::after {
+  background: linear-gradient(
+    135deg,
+    rgba(232, 232, 232, 0.5),
+    rgba(232, 232, 232, 0.15),
+    transparent 60%
+  );
+  box-shadow:
+    0 0 20px rgba(232, 232, 232, 0.12),
+    0 0 40px rgba(232, 232, 232, 0.06);
+}
+
+/* ============================================
+   ALBUMS-SCROLL
+   ============================================ */
+.albums-scroll {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: calc((100% - 4 * 1.25rem) / 5);
+  gap: 1.25rem;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding-bottom: 1rem;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-strong) transparent;
+  scroll-snap-type: x proximity;
+  align-items: stretch;
+}
+
+.albums-scroll::-webkit-scrollbar { height: 6px; }
+.albums-scroll::-webkit-scrollbar-track { background: transparent; }
+.albums-scroll::-webkit-scrollbar-thumb {
+  background: var(--border-strong);
+  border-radius: 3px;
+}
+.albums-scroll::-webkit-scrollbar-thumb:hover { background: var(--text-dim); }
+
+.albums-scroll .card {
+  scroll-snap-align: start;
+  transition: transform 0.2s ease;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.albums-scroll .card:hover { transform: translateY(-2px); }
+
+.albums-scroll .card .card-body {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+.albums-scroll .card .card-title {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  min-height: 2.6em;
+}
+
+.albums-scroll .card .store-links {
+  margin-top: auto;
+}
+
+/* ============================================
    GRID (pelit)
    ============================================ */
 .grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-  gap: 2rem 1.5rem;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1.5rem;
 }
 
 /* ============================================
@@ -205,16 +575,14 @@ h2 {
 }
 
 .card.game {
-  background: var(--surface);
-  border: 1px solid var(--border);
+  background: var(--card-bg);
+  border: 1px solid var(--border-strong);
   border-radius: 4px;
   overflow: hidden;
   transition: border-color 0.2s ease;
 }
 
-.card.game:hover {
-  border-color: var(--border-strong);
-}
+.card.game:hover { border-color: var(--text-dim); }
 
 .card-img {
   width: 100%;
@@ -234,15 +602,12 @@ h2 {
   flex: 1;
 }
 
-.card.game .card-body {
-  padding: 1rem;
-}
+.card.game .card-body { padding: 1rem; }
 
 .card-title {
   font-size: 0.95rem;
   font-weight: 500;
   line-height: 1.35;
-  color: var(--text);
   margin-bottom: 0.25rem;
   letter-spacing: -0.01em;
 }
@@ -250,6 +615,49 @@ h2 {
 .card-meta {
   font-size: 0.8rem;
   color: var(--text-dim);
+}
+
+/* ============================================
+   TYYPPI-BADGE (Album / Track)
+   ============================================ */
+.card-title-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.25rem;
+}
+
+.card-title-row .card-title {
+  margin-bottom: 0;
+  flex: 1;
+  min-width: 0;
+}
+
+.type-badge {
+  flex-shrink: 0;
+  font-size: 0.6rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  padding: 0.15rem 0.45rem;
+  border-radius: 4px;
+  border: 1px solid var(--border-strong);
+  color: var(--text-dim);
+  background: rgba(255, 255, 255, 0.03);
+  line-height: 1.4;
+}
+
+.type-badge.album {
+  color: var(--spotify);
+  border-color: rgba(29, 185, 84, 0.4);
+  background: rgba(29, 185, 84, 0.08);
+}
+
+.type-badge.track {
+  color: var(--bandcamp);
+  border-color: rgba(98, 154, 169, 0.4);
+  background: rgba(98, 154, 169, 0.08);
 }
 
 /* ============================================
@@ -286,71 +694,8 @@ h2 {
 .store-links a.bandcamp:hover { color: var(--bandcamp); border-bottom-color: var(--bandcamp); }
 
 /* ============================================
-   MUSIIKKI: Embla
+   LOADING & FOOTER
    ============================================ */
-.music-wrapper { position: relative; }
-
-.embla {
-  overflow: hidden;
-  margin: 0 -1.5rem;
-  padding: 0 1.5rem;
-}
-
-.embla__container {
-  display: flex;
-  gap: 1.25rem;
-  user-select: none;
-  -webkit-touch-callout: none;
-}
-
-.embla__slide {
-  flex: 0 0 auto;
-  min-width: 0;
-  width: calc((100% - 4 * 1.25rem) / 5);
-  transition: transform 0.2s ease;
-}
-
-.embla__slide:hover {
-  transform: translateY(-2px);
-}
-
-/* ============================================
-   SCROLL-NAPPI
-   ============================================ */
-.scroll-hint {
-  display: flex;
-  justify-content: flex-end;
-  gap: 0.5rem;
-  margin-top: 1rem;
-}
-
-.scroll-hint button {
-  background: transparent;
-  border: 1px solid var(--border-strong);
-  color: var(--text-muted);
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  cursor: pointer;
-  font-size: 0.9rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.15s ease;
-  font-family: inherit;
-  padding: 0;
-}
-
-.scroll-hint button:hover {
-  border-color: var(--text-muted);
-  color: var(--text);
-}
-
-.scroll-hint button:disabled {
-  opacity: 0.3;
-  cursor: default;
-}
-
 .loading {
   color: var(--text-dim);
   font-size: 0.9rem;
@@ -363,58 +708,333 @@ footer {
   padding: 3rem 0 6rem;
   border-top: 1px solid var(--border);
   line-height: 1.8;
+  text-align: center;
 }
 
-footer strong {
-  color: var(--text-muted);
-  font-weight: 500;
+footer strong { color: var(--text-muted); font-weight: 500; }
+
+/* ============================================
+   CRT-EFEKTI (koko sivu)
+   ============================================ */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 9999;
+  background:
+    repeating-linear-gradient(
+      0deg,
+      rgba(0, 0, 0, 0.2) 0px,
+      rgba(0, 0, 0, 0.2) 1px,
+      transparent 1px,
+      transparent 3px
+    );
+  animation: crt-flicker 0.15s infinite;
+}
+
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 9998;
+  background: radial-gradient(
+    ellipse at center,
+    transparent 0%,
+    transparent 60%,
+    rgba(0, 0, 0, 0.6) 100%
+  );
+  animation: crt-vignette 6s ease-in-out infinite;
+}
+
+@keyframes crt-flicker {
+  0%   { opacity: 0.85; }
+  50%  { opacity: 0.95; }
+  100% { opacity: 0.85; }
+}
+
+@keyframes crt-vignette {
+  0%, 100% { opacity: 0.7; }
+  50%      { opacity: 0.9; }
+}
+
+/* ============================================
+   CRT-KULMAT — kiertävä kehä
+   ============================================ */
+.crt-corner {
+  position: absolute;
+  width: 22px;
+  height: 22px;
+  pointer-events: none;
+  z-index: 3;
+  --crt-accent: var(--accent);
+}
+
+.crt-corner.tl { top: 0; left: 0; }
+.crt-corner.tr { top: 0; right: 0; }
+.crt-corner.bl { bottom: 0; left: 0; }
+.crt-corner.br { bottom: 0; right: 0; }
+
+.crt-corner::before,
+.crt-corner::after {
+  content: "";
+  position: absolute;
+  background: var(--crt-accent);
+  box-shadow:
+    0 0 6px var(--crt-accent),
+    0 0 12px var(--crt-accent);
+  opacity: 0.9;
+  transition: opacity 0.3s ease;
+}
+
+.crt-corner::before {
+  height: 2px;
+  width: 100%;
+}
+
+.crt-corner::after {
+  width: 2px;
+  height: 100%;
+}
+
+.crt-corner.tl::before { top: 0; left: 0; }
+.crt-corner.tl::after  { top: 0; left: 0; }
+
+.crt-corner.tr::before { top: 0; right: 0; }
+.crt-corner.tr::after  { top: 0; right: 0; }
+
+.crt-corner.bl::before { bottom: 0; left: 0; }
+.crt-corner.bl::after  { bottom: 0; left: 0; }
+
+.crt-corner.br::before { bottom: 0; right: 0; }
+.crt-corner.br::after  { bottom: 0; right: 0; }
+
+.crt-panel.mpjv .crt-corner  { --crt-accent: var(--mpjv-red); }
+.crt-panel.iota .crt-corner  { --crt-accent: var(--iota-yellow); }
+.crt-panel.games .crt-corner { --crt-accent: var(--accent); }
+
+@keyframes crt-corner-pulse {
+  0%, 100% {
+    opacity: 0.6;
+    filter: brightness(0.9);
+  }
+  50% {
+    opacity: 1;
+    filter: brightness(1.3);
+  }
+}
+
+.crt-panel .crt-corner::before,
+.crt-panel .crt-corner::after {
+  animation: crt-corner-pulse 2.4s ease-in-out infinite;
+}
+
+.crt-panel .crt-corner.tl::before,
+.crt-panel .crt-corner.tl::after { animation-delay: 0s; }
+
+.crt-panel .crt-corner.tr::before,
+.crt-panel .crt-corner.tr::after { animation-delay: 0.6s; }
+
+.crt-panel .crt-corner.br::before,
+.crt-panel .crt-corner.br::after { animation-delay: 1.2s; }
+
+.crt-panel .crt-corner.bl::before,
+.crt-panel .crt-corner.bl::after { animation-delay: 1.8s; }
+
+/* ============================================
+   SKANNAUSVIIVA — hitaasti liikkuva vaakaviiva
+   ============================================ */
+.crt-scanline {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+  overflow: hidden;
+  border-radius: inherit;
+}
+
+.crt-scanline::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 60px;
+  top: -60px;
+  background: linear-gradient(
+    to bottom,
+    transparent 0%,
+    rgba(255, 255, 255, 0.02) 40%,
+    rgba(255, 255, 255, 0.05) 50%,
+    rgba(255, 255, 255, 0.02) 60%,
+    transparent 100%
+  );
+  animation: crt-scanline-move 6s linear infinite;
+}
+
+.crt-panel.mpjv .crt-scanline::before {
+  background: linear-gradient(
+    to bottom,
+    transparent 0%,
+    rgba(230, 57, 70, 0.04) 40%,
+    rgba(230, 57, 70, 0.1) 50%,
+    rgba(230, 57, 70, 0.04) 60%,
+    transparent 100%
+  );
+}
+
+.crt-panel.iota .crt-scanline::before {
+  background: linear-gradient(
+    to bottom,
+    transparent 0%,
+    rgba(251, 191, 36, 0.04) 40%,
+    rgba(251, 191, 36, 0.1) 50%,
+    rgba(251, 191, 36, 0.04) 60%,
+    transparent 100%
+  );
+}
+
+.crt-panel.games .crt-scanline::before {
+  background: linear-gradient(
+    to bottom,
+    transparent 0%,
+    rgba(232, 232, 232, 0.03) 40%,
+    rgba(232, 232, 232, 0.08) 50%,
+    rgba(232, 232, 232, 0.03) 60%,
+    transparent 100%
+  );
+}
+
+@keyframes crt-scanline-move {
+  0%   { top: -60px; }
+  100% { top: 100%; }
+}
+
+/* ============================================
+   PYÖRIVÄ KEHÄ PANEELIN YMPÄRI
+   ============================================ */
+.crt-panel::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 12px;
+  pointer-events: none;
+  z-index: 2;
+  background:
+    conic-gradient(
+      from var(--crt-angle, 0deg),
+      transparent 0deg,
+      var(--crt-panel-accent, transparent) 30deg,
+      transparent 60deg,
+      transparent 360deg
+    );
+  -webkit-mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  padding: 1px;
+  opacity: 0.7;
+  animation: crt-border-rotate 8s linear infinite;
+}
+
+.crt-panel.mpjv  { --crt-panel-accent: var(--mpjv-red); }
+.crt-panel.iota  { --crt-panel-accent: var(--iota-yellow); }
+.crt-panel.games { --crt-panel-accent: var(--accent); }
+
+@property --crt-angle {
+  syntax: "<angle>";
+  initial-value: 0deg;
+  inherits: false;
+}
+
+@keyframes crt-border-rotate {
+  0%   { --crt-angle: 0deg; }
+  100% { --crt-angle: 360deg; }
 }
 
 /* ============================================
    RESPONSIIVISET
    ============================================ */
-
 @media (max-width: 899px) {
-  .img { width: 160px; height: 96px; margin: -48px 0 0 -80px; }
-  .embla__slide { width: calc((100% - 3 * 1.25rem) / 4); }
-  .grid { grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); }
+  .hero { padding: 4rem 0 2rem; }
+  .hero-grid { grid-template-columns: 1fr 1fr; }
+  .hero-card-about { grid-column: 1 / -1; }
+  .carousel-slide { width: 120px; height: 120px; margin: -60px 0 0 -60px; }
+
+  .grid {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1.25rem;
+  }
+
+  .albums-scroll {
+    grid-auto-columns: calc((100% - 3 * 1.25rem) / 4);
+  }
 }
 
 @media (max-width: 639px) {
-  .hero { min-height: 85vh; padding-bottom: 3rem; }
-  .img { width: 130px; height: 78px; margin: -39px 0 0 -65px; }
-  .hero-content h1 { font-size: 2.25rem; }
-  .hero-content .tagline { font-size: 0.95rem; }
-
-  .grid {
-    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-    gap: 1.5rem 1rem;
-  }
-
-  .embla { margin: 0 -1.25rem; padding: 0 1.25rem; }
-  .embla__container { gap: 1rem; }
-  .embla__slide { width: calc((100% - 2 * 1rem) / 3); }
-}
-
-@media (max-width: 419px) {
-  .img { width: 100px; height: 60px; margin: -30px 0 0 -50px; }
-  .hero-content h1 { font-size: 1.9rem; }
+  .hero { min-height: auto; padding: 3rem 0 2rem; }
+  .hero-grid { grid-template-columns: 1fr; gap: 0.75rem; }
+  .carousel-3d { display: none; }
+  .carousel-slide { width: 90px; height: 90px; margin: -45px 0 0 -45px; }
+  .hero-card-about h1 { font-size: 1.8rem; }
 
   .grid {
     grid-template-columns: repeat(2, 1fr);
-    gap: 1.25rem 0.75rem;
+    gap: 1.25rem 1rem;
   }
 
-  .embla { margin: 0 -1rem; padding: 0 1rem; }
-  .embla__container { gap: 0.85rem; }
-  .embla__slide { width: calc((100% - 1 * 0.85rem) / 2); }
+  .crt-panel { padding: 1.5rem 1.25rem; }
+
+  .albums-scroll {
+    grid-auto-columns: calc((100% - 2 * 1rem) / 3);
+  }
+}
+
+@media (max-width: 419px) {
+  .hero-social { width: 28px; height: 28px; }
+
+  .grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem 0.75rem;
+  }
 
   .card-title { font-size: 0.88rem; }
   .card-meta { font-size: 0.75rem; }
+
+  .crt-panel { padding: 1.25rem 1rem; }
+
+  .albums-scroll {
+    grid-auto-columns: calc((100% - 1 * 1rem) / 2);
+  }
 }
 
 @media (hover: none) {
   .card.game:hover { border-color: var(--border); }
-  .embla__slide:hover { transform: none; }
+  .albums-scroll .card:hover { transform: none; }
   .hero-btn:hover { transform: none; }
+  .hero-social:hover { transform: none; }
+}
+
+/* ============================================
+   REDUCED MOTION — kunnioita käyttäjän asetusta
+   ============================================ */
+@media (prefers-reduced-motion: reduce) {
+  body::before,
+  body::after,
+  .hero-card-about h1 {
+    animation: none !important;
+  }
+
+  .crt-corner::before,
+  .crt-corner::after,
+  .crt-scanline::before,
+  .crt-panel::before {
+    animation: none !important;
+  }
+
+  .crt-corner::before,
+  .crt-corner::after {
+    opacity: 1;
+  }
 }

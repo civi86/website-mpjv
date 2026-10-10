@@ -1,16 +1,15 @@
 #!/usr/bin/env python3
 """
-Hakee MpjV:n albumit Spotifysta ja Bandcampista.
+Hakee MpjV:n ja Iota Dran albumit ja singlet Spotifysta ja Bandcampista.
+Tallentaa erikseen albums.json ja tracks.json — molemmat sisältävät artist-kentän.
 Lataa kansikuvat paikallisesti images/covers/-kansioon.
 
-Jos Bandcamp epäonnistuu (esim. GitHub Actionsissa botinesto),
-säilytetään aiemmat Bandcamp-albumit albums.json:sta.
-
-Käyttö:
-    python fetch_albums.py
+Käyttää bandcamp_urls.json-tiedostoa ohittamaan virheelliset slugit
+(esim. Frostmoor → /track/frostmoor-2, koska /track/frostmoor on jo varattu).
 """
 
 import os
+import re
 import json
 import asyncio
 import hashlib
@@ -26,12 +25,27 @@ load_dotenv()
 
 SPOTIFY_CLIENT_ID = os.getenv("SPOTIFY_CLIENT_ID")
 SPOTIFY_CLIENT_SECRET = os.getenv("SPOTIFY_CLIENT_SECRET")
-SPOTIFY_ARTIST_ID = os.getenv("SPOTIFY_ARTIST_ID")
-BANDCAMP_ARTIST = os.getenv("BANDCAMP_ARTIST")
-BANDCAMP_SUBDOMAIN = "mpjv"
 
-OUTPUT_FILE = "albums.json"
+# Artistit
+ARTISTS = [
+    {
+        "name": "MpjV",
+        "spotify_id": "3YCp3jx8nfeUxvCn4zKsaE",
+        "bandcamp_id": "2099574454",
+        "bandcamp_subdomain": "mpjv",
+    },
+    {
+        "name": "Iota Dra",
+        "spotify_id": "51FlxB6ndzPum6t1wBbyJC",
+        "bandcamp_id": "976907511",
+        "bandcamp_subdomain": "iotadra",
+    },
+]
+
+ALBUMS_FILE = "albums.json"
+TRACKS_FILE = "tracks.json"
 COVERS_DIR = "images/covers"
+OVERRIDES_FILE = "bandcamp_urls.json"
 
 
 # ============================================
@@ -48,6 +62,15 @@ def parse_bandcamp_date(date_str):
         return str(date_str)
 
 
+def slugify(title):
+    """Muuntaa 'Four-channel XMs' → 'four-channel-xms'."""
+    slug = title.lower().strip()
+    slug = re.sub(r'[^\w\s-]', '', slug)
+    slug = re.sub(r'[\s_]+', '-', slug)
+    slug = re.sub(r'-+', '-', slug)
+    return slug.strip('-')
+
+
 def bandcamp_cover_url(art_id):
     """Rakentaa Bandcampin kansikuvan URL:n — _10 = 1200×1200."""
     if not art_id:
@@ -55,12 +78,45 @@ def bandcamp_cover_url(art_id):
     return f"https://f4.bcbits.com/img/a{art_id}_10.jpg"
 
 
-def bandcamp_item_url(item_type, item_id):
-    """Rakentaa Bandcamp-linkin item_type + item_id:stä."""
+def load_bandcamp_overrides():
+    """Lataa käsin määritellyt Bandcamp-URLit."""
+    if not os.path.exists(OVERRIDES_FILE):
+        return {}
+    try:
+        with open(OVERRIDES_FILE, encoding="utf-8") as f:
+            return json.load(f)
+    except Exception:
+        return {}
+
+
+BANDCAMP_OVERRIDES = load_bandcamp_overrides()
+
+
+def bandcamp_item_url(item_type, item_id, title, subdomain, artist_name=""):
+    """
+    Rakentaa Bandcamp-linkin.
+    1. Käyttää overridea jos löytyy (bandcamp_urls.json)
+    2. Slug otsikosta
+    3. Fallback: numeerinen item_id
+    """
+    # 1. Tarkista override
+    if artist_name and artist_name in BANDCAMP_OVERRIDES:
+        artist_overrides = BANDCAMP_OVERRIDES[artist_name]
+        if title in artist_overrides:
+            return artist_overrides[title]
+
+    # 2. Slug otsikosta
+    path = "track" if item_type == "track" else "album"
+    if title:
+        slug = slugify(title)
+        if slug:
+            return f"https://{subdomain}.bandcamp.com/{path}/{slug}"
+
+    # 3. Fallback: item_id
     if not item_id:
         return ""
-    path = "track" if item_type == "track" else "album"
-    return f"https://{BANDCAMP_SUBDOMAIN}.bandcamp.com/{path}/{item_id}"
+
+    return f"https://{subdomain}.bandcamp.com/{path}/{item_id}"
 
 
 def spotify_largest_image(images):
@@ -72,13 +128,7 @@ def spotify_largest_image(images):
 
 
 def spotify_upgrade_cover(url):
-    """
-    Pakottaa Spotify-kuvan 640×640 -kokoon.
-    Spotify käyttää kiinteitä koko-tunnisteita URL:ssa:
-      ab67616d00001e02 → 640×640
-      ab67616d0000b273 → 300×300
-      ab67616d00004851 → 64×64
-    """
+    """Pakottaa Spotify-kuvan 640×640 -kokoon."""
     if not url:
         return ""
     return (url
@@ -87,15 +137,10 @@ def spotify_upgrade_cover(url):
 
 
 def download_cover(url, title):
-    """
-    Lataa kansikuvan paikallisesti images/covers/-kansioon.
-    Ohittaa jos tiedosto on jo olemassa.
-    Palauttaa paikallisen polun (esim. "images/covers/foo_abc123.jpg").
-    """
+    """Lataa kansikuvan paikallisesti. Ohittaa jos jo olemassa."""
     if not url:
         return ""
 
-    # Jos URL on jo paikallinen polku, palauta se
     if url.startswith("images/"):
         return url
 
@@ -129,12 +174,12 @@ def download_cover(url, title):
         return url
 
 
-def load_previous_albums():
-    """Lataa aiemman albums.json-tiedoston — Bandcamp-fallbackia varten."""
-    if not os.path.exists(OUTPUT_FILE):
+def load_previous(file):
+    """Lataa aiemman JSON-tiedoston — fallbackia varten."""
+    if not os.path.exists(file):
         return []
     try:
-        with open(OUTPUT_FILE, encoding="utf-8") as f:
+        with open(file, encoding="utf-8") as f:
             return json.load(f)
     except Exception:
         return []
@@ -143,8 +188,8 @@ def load_previous_albums():
 # ============================================
 # SPOTIFY
 # ============================================
-def fetch_spotify_albums():
-    """Hakee artistin albumit Spotifyn Web API:sta."""
+def fetch_spotify(artist_name, artist_id, album_type):
+    """Hakee Spotifysta joko albumit tai singlet tietylle artistille."""
     auth = SpotifyClientCredentials(
         client_id=SPOTIFY_CLIENT_ID,
         client_secret=SPOTIFY_CLIENT_SECRET,
@@ -157,8 +202,8 @@ def fetch_spotify_albums():
 
     while True:
         results = sp.artist_albums(
-            SPOTIFY_ARTIST_ID,
-            album_type="album,single",
+            artist_id,
+            album_type=album_type,
             limit=limit,
             offset=offset,
         )
@@ -169,7 +214,7 @@ def fetch_spotify_albums():
         for a in items:
             albums.append({
                 "title": a["name"],
-                "artist": "MpjV",
+                "artist": artist_name,
                 "release_date": a.get("release_date", ""),
                 "cover": spotify_upgrade_cover(
                     spotify_largest_image(a.get("images", []))
@@ -187,23 +232,29 @@ def fetch_spotify_albums():
 # ============================================
 # BANDCAMP
 # ============================================
-async def fetch_bandcamp_albums():
-    """Hakee artistin diskografian Bandcampista numeerisella artist-ID:llä."""
+async def fetch_bandcamp(artist_name, bandcamp_id, subdomain, item_type):
+    """Hakee Bandcampista joko albumit (album) tai trackit (track)."""
     async with BandcampAPIClient() as client:
-        artist = await client.get_artist(int(BANDCAMP_ARTIST))
+        artist = await client.get_artist(int(bandcamp_id))
         discography = await client.get_artist_discography(artist.id)
 
     albums = []
     for item in discography:
+        if item.get("item_type") != item_type:
+            continue
+
         albums.append({
             "title": item.get("title", ""),
-            "artist": "MpjV",
+            "artist": artist_name,
             "release_date": parse_bandcamp_date(item.get("release_date", "")),
             "cover": bandcamp_cover_url(item.get("art_id")),
             "spotify_url": "",
             "bandcamp_url": bandcamp_item_url(
                 item.get("item_type", "album"),
-                item.get("item_id")
+                item.get("item_id"),
+                item.get("title", ""),
+                subdomain,
+                artist_name
             ),
             "platform": "bandcamp",
         })
@@ -214,7 +265,6 @@ async def fetch_bandcamp_albums():
 # YHDISTÄ
 # ============================================
 def normalize(title):
-    """Normalisoi albumin nimi yhdistämistä varten."""
     return (title.lower().strip()
             .replace("(remastered", "")
             .replace("(original game soundtrack)", "")
@@ -223,12 +273,12 @@ def normalize(title):
             .strip())
 
 
-def merge_albums(spotify_list, bandcamp_list):
-    """Yhdistää albuminimet normalisoituna."""
+def merge_releases(spotify_list, bandcamp_list):
+    """Yhdistää julkaisut artisti + normalisoitu nimi -avaimella."""
     merged = {}
 
     for a in spotify_list + bandcamp_list:
-        key = normalize(a["title"])
+        key = f"{a['artist']}::{normalize(a['title'])}"
         if key not in merged:
             merged[key] = {
                 "title": a["title"],
@@ -252,58 +302,81 @@ def merge_albums(spotify_list, bandcamp_list):
     return result
 
 
+def fallback_from_previous(previous, artist_name):
+    """Käyttää aiempaa dataa jos Bandcamp-haku epäonnistui tietylle artistille."""
+    items = []
+    for a in previous:
+        if a.get("bandcamp_url") and a.get("artist") == artist_name:
+            items.append({
+                "title": a["title"],
+                "artist": a["artist"],
+                "release_date": a["release_date"],
+                "cover": a["cover"],
+                "spotify_url": "",
+                "bandcamp_url": a["bandcamp_url"],
+                "platform": "bandcamp",
+            })
+    return items
+
+
 # ============================================
 # MAIN
 # ============================================
+def process(kind, spotify_type, bandcamp_type, output_file):
+    """Hakee ja tallentaa joko albumit tai singlet molemmilta artisteilta."""
+    all_releases = []
+
+    for artist in ARTISTS:
+        print(f"\n🎵 {artist['name']} — {kind} Spotifysta...")
+        spotify = fetch_spotify(artist["name"], artist["spotify_id"], spotify_type)
+        print(f"   → {len(spotify)} {kind}")
+
+        print(f"🎵 {artist['name']} — {kind} Bandcampista...")
+        try:
+            bandcamp = asyncio.run(
+                fetch_bandcamp(
+                    artist["name"],
+                    artist["bandcamp_id"],
+                    artist["bandcamp_subdomain"],
+                    bandcamp_type,
+                )
+            )
+            print(f"   → {len(bandcamp)} {kind}")
+        except Exception as e:
+            print(f"   ⚠️  Bandcamp epäonnistui: {e}")
+            previous = load_previous(output_file)
+            bandcamp = fallback_from_previous(previous, artist["name"])
+            print(f"   → {len(bandcamp)} {kind} aiemmasta datasta")
+
+        print("🔀 Yhdistetään...")
+        merged = merge_releases(spotify, bandcamp)
+        all_releases.extend(merged)
+
+    # Lajittele kaikki uusin ensin
+    all_releases.sort(key=lambda x: x.get("release_date", ""), reverse=True)
+
+    # Lataa kansikuvat
+    print(f"\n📥 Ladataan kansikuvat {COVERS_DIR}/...")
+    for item in all_releases:
+        local_path = download_cover(item["cover"], item["title"])
+        item["cover"] = local_path
+
+    with open(output_file, "w", encoding="utf-8") as f:
+        json.dump(all_releases, f, ensure_ascii=False, indent=2)
+
+    # Yhteenveto
+    mpjv_count = sum(1 for r in all_releases if r["artist"] == "MpjV")
+    iota_count = sum(1 for r in all_releases if r["artist"] == "Iota Dra")
+    print(f"✅ Tallennettu {len(all_releases)} {kind} → {output_file}")
+    print(f"   MpjV: {mpjv_count}, Iota Dra: {iota_count}")
+
+
 def main():
-    print("🎵 Haetaan Spotify...")
-    spotify = fetch_spotify_albums()
-    print(f"   → {len(spotify)} albumia")
+    # Albumit
+    process("albumia", "album", "album", ALBUMS_FILE)
 
-    print("🎵 Haetaan Bandcamp...")
-    bandcamp = None
-    try:
-        bandcamp = asyncio.run(fetch_bandcamp_albums())
-        print(f"   → {len(bandcamp)} albumia")
-    except Exception as e:
-        print(f"   ⚠️  Bandcamp epäonnistui: {e}")
-        print("   → Käytetään aiempaa dataa albums.json:sta")
-
-        previous = load_previous_albums()
-        bandcamp = []
-        for a in previous:
-            if a.get("bandcamp_url"):
-                bandcamp.append({
-                    "title": a["title"],
-                    "artist": a["artist"],
-                    "release_date": a["release_date"],
-                    "cover": a["cover"],
-                    "spotify_url": "",
-                    "bandcamp_url": a["bandcamp_url"],
-                    "platform": "bandcamp",
-                })
-        print(f"   → {len(bandcamp)} albumia aiemmasta datasta")
-
-    print("🔀 Yhdistetään...")
-    merged = merge_albums(spotify, bandcamp)
-
-    print(f"📥 Ladataan kansikuvat {COVERS_DIR}/...")
-    for album in merged:
-        local_path = download_cover(album["cover"], album["title"])
-        album["cover"] = local_path
-
-    with open(OUTPUT_FILE, "w", encoding="utf-8") as f:
-        json.dump(merged, f, ensure_ascii=False, indent=2)
-
-    print(f"✅ Tallennettu {len(merged)} albumia → {OUTPUT_FILE}")
-
-    missing = [a["title"] for a in merged if not a.get("cover")]
-    if missing:
-        print(f"⚠️  Puuttuvat kansikuvat: {len(missing)}")
-        for title in missing:
-            print(f"   - {title}")
-    else:
-        print("✨ Kaikilla albumeilla on kansikuvat")
+    # Singlet
+    process("singleä", "single", "track", TRACKS_FILE)
 
 
 if __name__ == "__main__":
