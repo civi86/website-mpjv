@@ -2,9 +2,11 @@ name: Update albums
 
 on:
   schedule:
-    # Aja kerran päivässä klo 04:00 UTC (klo 06:00 Suomen aikaa)
     - cron: '0 4 * * *'
-  workflow_dispatch:   # Salli manuaalinen käynnistys GitHubista
+  workflow_dispatch:
+
+permissions:
+  contents: write
 
 jobs:
   update:
@@ -12,10 +14,10 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Setup Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: '3.12'
 
@@ -37,4 +39,9 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add albums.json images/covers/
-          git diff --quiet && git diff --staged --quiet || (git commit -m "chore: update albums" && git push)
+          if git diff --staged --quiet; then
+            echo "Ei muutoksia committoitavaksi"
+          else
+            git commit -m "chore: update albums"
+            git push
+          fi
