@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="fi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MpjV — Electronic Music Artist & Game Developer</title>
+<meta name="description" content="Finnish electronic music artist, game developer and classical pianist.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- ============================================
+       HERO — 3D-ring + tekstit
+       ============================================ -->
+  <section class="hero">
+    <div class="hero-3d">
+      <div class="ring-wrapper">
+        <div class="ring" id="ring"></div>
+      </div>
+      <div class="dragger" id="dragger"></div>
+    </div>
+
+    <div class="container hero-content">
+      <header>
+        <h1>MpjV</h1>
+        <p class="tagline">Finnish electronic music artist, game developer and classical pianist.</p>
+
+        <div class="hero-actions">
+          <a class="hero-btn primary" href="#music">Listen</a>
+          <a class="hero-btn" href="#games">Play games</a>
+        </div>
+      </header>
+    </div>
+  </section>
+
+  <!-- ============================================
+       MUSIIKKI — Embla-karuselli
+       ============================================ -->
+  <div class="container">
+    <section id="music">
+      <h2>Music</h2>
+      <div class="music-wrapper">
+        <div class="embla" id="albums-embla">
+          <div class="embla__container" id="albums-grid">
+            <p class="loading">Loading…</p>
+          </div>
+        </div>
+        <div class="scroll-hint" id="scroll-hint" style="display: none;">
+          <button id="scroll-prev" aria-label="Scroll left">←</button>
+          <button id="scroll-next" aria-label="Scroll right">→</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================
+         PELIT
+         ============================================ -->
+    <section id="games">
+      <h2>Games</h2>
+      <div class="grid">
+
+        <div class="card game">
+          <img class="card-img wide" src="images/bozo-clicker.png" alt="Bozo Clicker cover">
+          <div class="card-body">
+            <div class="card-title">Bozo Clicker</div>
+            <div class="card-meta">Clicker · Windows, Android</div>
+            <div class="store-links">
+              <a class="itch" href="https://mpjv.itch.io/bozo-clicker" target="_blank" rel="noopener">itch.io</a>
+            </div>
+          </div>
+        </div>
+
+        <div class="card game">
+          <img class="card-img wide" src="images/slime-fire-and-soul.png" alt="Slime, Fire and Soul cover">
+          <div class="card-body">
+            <div class="card-title">Slime, Fire and Soul</div>
+            <div class="card-meta">Pixel shooter · Windows</div>
+            <div class="store-links">
+              <a class="steam" href="https://store.steampowered.com/app/2773540/Slime_Fire_and_Soul/" target="_blank" rel="noopener">Steam</a>
+              <a class="itch" href="https://mpjv.itch.io/slime-fire-and-soul" target="_blank" rel="noopener">itch.io</a>
+            </div>
+          </div>
+        </div>
+
+        <div class="card game">
+          <img class="card-img wide" src="images/sinister.png" alt="Sinister cover">
+          <div class="card-body">
+            <div class="card-title">Sinister</div>
+            <div class="card-meta">Horror · Windows</div>
+            <div class="store-links">
+              <a class="itch" href="https://mpjv.itch.io/sinister" target="_blank" rel="noopener">itch.io</a>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <footer>
+      Business: <strong>mpjv</strong> on Discord · <strong>@mpjv02</strong> on Instagram<br>
+      Iota Dra: <strong>@iotadra</strong> on Instagram
+    </footer>
+  </div>
+
+  <!-- CDN:t -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/Draggable.min.js"></script>
+  <script src="https://unpkg.com/embla-carousel/embla-carousel.umd.js"></script>
+
+  <!-- Oma scripti -->
+  <script src="script.js"></script>
+</body>
+</html>

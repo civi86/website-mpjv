@@ -1,0 +1,3 @@
+spotipy
+bandcamp-async-api
+python-dotenv
