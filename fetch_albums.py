@@ -2,7 +2,12 @@
 """
 Hakee MpjV:n albumit Spotifysta ja Bandcampista.
 Lataa kansikuvat paikallisesti images/covers/-kansioon.
-Tallentaa tuloksen albums.json-tiedostoon.
+
+Jos Bandcamp epäonnistuu (esim. GitHub Actionsissa botinesto),
+säilytetään aiemmat Bandcamp-albumit albums.json:sta.
+
+Käyttö:
+    python fetch_albums.py
 """
 
 import os
@@ -29,8 +34,11 @@ OUTPUT_FILE = "albums.json"
 COVERS_DIR = "images/covers"
 
 
-# ---------- APUFUNKTIOT ----------
+# ============================================
+# APUFUNKTIOT
+# ============================================
 def parse_bandcamp_date(date_str):
+    """Muuntaa '07 Oct 2026 00:00:00 GMT' → '2026-10-07'."""
     if not date_str:
         return ""
     try:
@@ -41,12 +49,14 @@ def parse_bandcamp_date(date_str):
 
 
 def bandcamp_cover_url(art_id):
+    """Rakentaa Bandcampin kansikuvan URL:n — _10 = 1200×1200."""
     if not art_id:
         return ""
     return f"https://f4.bcbits.com/img/a{art_id}_10.jpg"
 
 
 def bandcamp_item_url(item_type, item_id):
+    """Rakentaa Bandcamp-linkin item_type + item_id:stä."""
     if not item_id:
         return ""
     path = "track" if item_type == "track" else "album"
@@ -54,6 +64,7 @@ def bandcamp_item_url(item_type, item_id):
 
 
 def spotify_largest_image(images):
+    """Valitsee Spotifyn kuvataulukosta suurimman."""
     if not images:
         return ""
     largest = max(images, key=lambda x: x.get("width", 0) or 0)
@@ -61,6 +72,13 @@ def spotify_largest_image(images):
 
 
 def spotify_upgrade_cover(url):
+    """
+    Pakottaa Spotify-kuvan 640×640 -kokoon.
+    Spotify käyttää kiinteitä koko-tunnisteita URL:ssa:
+      ab67616d00001e02 → 640×640
+      ab67616d0000b273 → 300×300
+      ab67616d00004851 → 64×64
+    """
     if not url:
         return ""
     return (url
@@ -71,27 +89,28 @@ def spotify_upgrade_cover(url):
 def download_cover(url, title):
     """
     Lataa kansikuvan paikallisesti images/covers/-kansioon.
-    Palauttaa paikallisen polun (esim. "images/covers/abc123.jpg").
+    Ohittaa jos tiedosto on jo olemassa.
+    Palauttaa paikallisen polun (esim. "images/covers/foo_abc123.jpg").
     """
     if not url:
         return ""
 
+    # Jos URL on jo paikallinen polku, palauta se
+    if url.startswith("images/"):
+        return url
+
     os.makedirs(COVERS_DIR, exist_ok=True)
 
-    # Luo uniikki tiedostonimi URL:n perusteella
     ext = ".jpg"
     hash_part = hashlib.md5(url.encode()).hexdigest()[:12]
     safe_title = "".join(c if c.isalnum() or c in "-_" else "_" for c in title)
     filename = f"{safe_title}_{hash_part}{ext}"
     filepath = os.path.join(COVERS_DIR, filename)
 
-    # Ohita jos tiedosto on jo olemassa
     if os.path.exists(filepath):
         return filepath.replace("\\", "/")
 
-    # Lataa kuva
     try:
-        # Lähetä Referer-otsikko — Bandcamp vaatii sen
         req = urllib.request.Request(
             url,
             headers={
@@ -103,17 +122,29 @@ def download_cover(url, title):
         with urllib.request.urlopen(req, timeout=15) as response:
             with open(filepath, "wb") as f:
                 f.write(response.read())
-
         print(f"   ⬇  {filename}")
         return filepath.replace("\\", "/")
-
     except Exception as e:
         print(f"   ❌ Lataus epäonnistui: {title} ({e})")
-        return url  # Fallback: käytä alkuperäistä URL:ia
+        return url
 
 
-# ---------- SPOTIFY ----------
+def load_previous_albums():
+    """Lataa aiemman albums.json-tiedoston — Bandcamp-fallbackia varten."""
+    if not os.path.exists(OUTPUT_FILE):
+        return []
+    try:
+        with open(OUTPUT_FILE, encoding="utf-8") as f:
+            return json.load(f)
+    except Exception:
+        return []
+
+
+# ============================================
+# SPOTIFY
+# ============================================
 def fetch_spotify_albums():
+    """Hakee artistin albumit Spotifyn Web API:sta."""
     auth = SpotifyClientCredentials(
         client_id=SPOTIFY_CLIENT_ID,
         client_secret=SPOTIFY_CLIENT_SECRET,
@@ -144,6 +175,7 @@ def fetch_spotify_albums():
                     spotify_largest_image(a.get("images", []))
                 ),
                 "spotify_url": a["external_urls"]["spotify"],
+                "bandcamp_url": "",
                 "platform": "spotify",
             })
 
@@ -152,8 +184,11 @@ def fetch_spotify_albums():
     return albums
 
 
-# ---------- BANDCAMP ----------
+# ============================================
+# BANDCAMP
+# ============================================
 async def fetch_bandcamp_albums():
+    """Hakee artistin diskografian Bandcampista numeerisella artist-ID:llä."""
     async with BandcampAPIClient() as client:
         artist = await client.get_artist(int(BANDCAMP_ARTIST))
         discography = await client.get_artist_discography(artist.id)
@@ -165,6 +200,7 @@ async def fetch_bandcamp_albums():
             "artist": "MpjV",
             "release_date": parse_bandcamp_date(item.get("release_date", "")),
             "cover": bandcamp_cover_url(item.get("art_id")),
+            "spotify_url": "",
             "bandcamp_url": bandcamp_item_url(
                 item.get("item_type", "album"),
                 item.get("item_id")
@@ -174,16 +210,21 @@ async def fetch_bandcamp_albums():
     return albums
 
 
-# ---------- YHDISTÄ ----------
-def merge_albums(spotify_list, bandcamp_list):
-    def normalize(title):
-        return (title.lower().strip()
-                .replace("(remastered", "")
-                .replace("(original game soundtrack)", "")
-                .replace("(deluxe edition)", "")
-                .replace("  ", " ")
-                .strip())
+# ============================================
+# YHDISTÄ
+# ============================================
+def normalize(title):
+    """Normalisoi albumin nimi yhdistämistä varten."""
+    return (title.lower().strip()
+            .replace("(remastered", "")
+            .replace("(original game soundtrack)", "")
+            .replace("(deluxe edition)", "")
+            .replace("  ", " ")
+            .strip())
 
+
+def merge_albums(spotify_list, bandcamp_list):
+    """Yhdistää albuminimet normalisoituna."""
     merged = {}
 
     for a in spotify_list + bandcamp_list:
@@ -211,15 +252,37 @@ def merge_albums(spotify_list, bandcamp_list):
     return result
 
 
-# ---------- MAIN ----------
+# ============================================
+# MAIN
+# ============================================
 def main():
     print("🎵 Haetaan Spotify...")
     spotify = fetch_spotify_albums()
     print(f"   → {len(spotify)} albumia")
 
     print("🎵 Haetaan Bandcamp...")
-    bandcamp = asyncio.run(fetch_bandcamp_albums())
-    print(f"   → {len(bandcamp)} albumia")
+    bandcamp = None
+    try:
+        bandcamp = asyncio.run(fetch_bandcamp_albums())
+        print(f"   → {len(bandcamp)} albumia")
+    except Exception as e:
+        print(f"   ⚠️  Bandcamp epäonnistui: {e}")
+        print("   → Käytetään aiempaa dataa albums.json:sta")
+
+        previous = load_previous_albums()
+        bandcamp = []
+        for a in previous:
+            if a.get("bandcamp_url"):
+                bandcamp.append({
+                    "title": a["title"],
+                    "artist": a["artist"],
+                    "release_date": a["release_date"],
+                    "cover": a["cover"],
+                    "spotify_url": "",
+                    "bandcamp_url": a["bandcamp_url"],
+                    "platform": "bandcamp",
+                })
+        print(f"   → {len(bandcamp)} albumia aiemmasta datasta")
 
     print("🔀 Yhdistetään...")
     merged = merge_albums(spotify, bandcamp)
@@ -239,6 +302,8 @@ def main():
         print(f"⚠️  Puuttuvat kansikuvat: {len(missing)}")
         for title in missing:
             print(f"   - {title}")
+    else:
+        print("✨ Kaikilla albumeilla on kansikuvat")
 
 
 if __name__ == "__main__":
