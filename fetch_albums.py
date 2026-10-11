@@ -4,8 +4,7 @@ Hakee MpjV:n ja Iota Dran albumit ja singlet Spotifysta ja Bandcampista.
 Tallentaa erikseen albums.json ja tracks.json — molemmat sisältävät artist-kentän.
 Lataa kansikuvat paikallisesti images/covers/-kansioon.
 
-Käyttää bandcamp_urls.json-tiedostoa ohittamaan virheelliset slugit
-(esim. Frostmoor → /track/frostmoor-2, koska /track/frostmoor on jo varattu).
+Standalone-versio: Spotify-avaimet on kovakoodattu, .env-tiedostoa ei tarvita.
 """
 
 import os
@@ -18,10 +17,17 @@ import hashlib
 import urllib.request
 from datetime import datetime
 
-from dotenv import load_dotenv
 import spotipy
 from spotipy.oauth2 import SpotifyClientCredentials
 from bandcamp_async_api import BandcampAPIClient
+
+
+# ============================================
+# SPOTIFY-AVAIMET (KOVAKOODATTU)
+# ============================================
+# ⚠️ HUOM: Nämä näkyvät .exe-tiedostossa. Älä jaa julkisesti.
+SPOTIFY_CLIENT_ID = "fa2fd460df84444fb85d2f65f0199a12"
+SPOTIFY_CLIENT_SECRET = "84f8f7305b1e471b91be429b284f4e1a"
 
 
 # ============================================
@@ -35,13 +41,6 @@ def get_base_dir():
 
 
 BASE_DIR = get_base_dir()
-
-# Lue .env-tiedosto .exe:n (tai skriptin) vierestä
-ENV_PATH = os.path.join(BASE_DIR, ".env")
-load_dotenv(ENV_PATH)
-
-SPOTIFY_CLIENT_ID = os.getenv("SPOTIFY_CLIENT_ID")
-SPOTIFY_CLIENT_SECRET = os.getenv("SPOTIFY_CLIENT_SECRET")
 
 
 # Artistit
@@ -70,12 +69,10 @@ OVERRIDES_FILE = "bandcamp_urls.json"
 # KOMENTOKEHOTTEEN APUFUNKTIOT
 # ============================================
 def log(msg, symbol="›"):
-    """Tulostaa viestin sisennyksellä ja symbolilla."""
     print(f"  {symbol} {msg}", flush=True)
 
 
 def log_step(step_num, total, msg):
-    """Tulostaa vaiheen 'X/Y' -muodossa."""
     print(f"\n[{step_num}/{total}] {msg}", flush=True)
 
 
@@ -104,7 +101,6 @@ def print_banner():
 # APUFUNKTIOT
 # ============================================
 def parse_bandcamp_date(date_str):
-    """Muuntaa '07 Oct 2026 00:00:00 GMT' → '2026-10-07'."""
     if not date_str:
         return ""
     try:
@@ -115,7 +111,6 @@ def parse_bandcamp_date(date_str):
 
 
 def slugify(title):
-    """Muuntaa 'Four-channel XMs' → 'four-channel-xms'."""
     slug = title.lower().strip()
     slug = re.sub(r'[^\w\s-]', '', slug)
     slug = re.sub(r'[\s_]+', '-', slug)
@@ -124,14 +119,12 @@ def slugify(title):
 
 
 def bandcamp_cover_url(art_id):
-    """Rakentaa Bandcampin kansikuvan URL:n — _10 = 1200×1200."""
     if not art_id:
         return ""
     return f"https://f4.bcbits.com/img/a{art_id}_10.jpg"
 
 
 def load_bandcamp_overrides():
-    """Lataa käsin määritellyt Bandcamp-URLit."""
     overrides_path = os.path.join(BASE_DIR, OVERRIDES_FILE)
     if not os.path.exists(overrides_path):
         return {}
@@ -146,26 +139,17 @@ BANDCAMP_OVERRIDES = load_bandcamp_overrides()
 
 
 def bandcamp_item_url(item_type, item_id, title, subdomain, artist_name=""):
-    """
-    Rakentaa Bandcamp-linkin.
-    1. Käyttää overridea jos löytyy (bandcamp_urls.json)
-    2. Slug otsikosta
-    3. Fallback: numeerinen item_id
-    """
-    # 1. Tarkista override
     if artist_name and artist_name in BANDCAMP_OVERRIDES:
         artist_overrides = BANDCAMP_OVERRIDES[artist_name]
         if title in artist_overrides:
             return artist_overrides[title]
 
-    # 2. Slug otsikosta
     path = "track" if item_type == "track" else "album"
     if title:
         slug = slugify(title)
         if slug:
             return f"https://{subdomain}.bandcamp.com/{path}/{slug}"
 
-    # 3. Fallback: item_id
     if not item_id:
         return ""
 
@@ -173,7 +157,6 @@ def bandcamp_item_url(item_type, item_id, title, subdomain, artist_name=""):
 
 
 def spotify_largest_image(images):
-    """Valitsee Spotifyn kuvataulukosta suurimman."""
     if not images:
         return ""
     largest = max(images, key=lambda x: x.get("width", 0) or 0)
@@ -181,7 +164,6 @@ def spotify_largest_image(images):
 
 
 def spotify_upgrade_cover(url):
-    """Pakottaa Spotify-kuvan 640×640 -kokoon."""
     if not url:
         return ""
     return (url
@@ -190,7 +172,6 @@ def spotify_upgrade_cover(url):
 
 
 def download_cover(url, title):
-    """Lataa kansikuvan paikallisesti. Ohittaa jos jo olemassa."""
     if not url:
         return ""
 
@@ -208,7 +189,6 @@ def download_cover(url, title):
 
     if os.path.exists(filepath):
         log(f"↺ {filename} (jo olemassa)", "·")
-        # Palauta suhteellinen polku sivustoa varten
         return f"{COVERS_DIR}/{filename}"
 
     try:
@@ -231,7 +211,6 @@ def download_cover(url, title):
 
 
 def load_previous(file):
-    """Lataa aiemman JSON-tiedoston — fallbackia varten."""
     path = os.path.join(BASE_DIR, file)
     if not os.path.exists(path):
         return []
@@ -246,12 +225,8 @@ def load_previous(file):
 # SPOTIFY
 # ============================================
 def fetch_spotify(artist_name, artist_id, album_type):
-    """Hakee Spotifysta joko albumit tai singlet tietylle artistille."""
     if not SPOTIFY_CLIENT_ID or not SPOTIFY_CLIENT_SECRET:
-        raise RuntimeError(
-            "SPOTIFY_CLIENT_ID tai SPOTIFY_CLIENT_SECRET puuttuu. "
-            f"Tarkista .env-tiedosto: {ENV_PATH}"
-        )
+        raise RuntimeError("Spotify-avaimet puuttuvat skriptistä.")
 
     auth = SpotifyClientCredentials(
         client_id=SPOTIFY_CLIENT_ID,
@@ -296,7 +271,6 @@ def fetch_spotify(artist_name, artist_id, album_type):
 # BANDCAMP
 # ============================================
 async def fetch_bandcamp(artist_name, bandcamp_id, subdomain, item_type):
-    """Hakee Bandcampista joko albumit (album) tai trackit (track)."""
     async with BandcampAPIClient() as client:
         artist = await client.get_artist(int(bandcamp_id))
         discography = await client.get_artist_discography(artist.id)
@@ -337,7 +311,6 @@ def normalize(title):
 
 
 def merge_releases(spotify_list, bandcamp_list):
-    """Yhdistää julkaisut artisti + normalisoitu nimi -avaimella."""
     merged = {}
 
     for a in spotify_list + bandcamp_list:
@@ -366,7 +339,6 @@ def merge_releases(spotify_list, bandcamp_list):
 
 
 def fallback_from_previous(previous, artist_name):
-    """Käyttää aiempaa dataa jos Bandcamp-haku epäonnistui tietylle artistille."""
     items = []
     for a in previous:
         if a.get("bandcamp_url") and a.get("artist") == artist_name:
@@ -386,12 +358,10 @@ def fallback_from_previous(previous, artist_name):
 # PROCESS
 # ============================================
 def process(kind, spotify_type, bandcamp_type, output_file, step_num, step_total):
-    """Hakee ja tallentaa joko albumit tai singlet molemmilta artisteilta."""
     all_releases = []
     output_path = os.path.join(BASE_DIR, output_file)
 
     for artist in ARTISTS:
-        # Spotify
         log_step(step_num, step_total, f"{kind.capitalize()} — {artist['name']} (Spotify)")
         try:
             spotify = fetch_spotify(artist["name"], artist["spotify_id"], spotify_type)
@@ -400,7 +370,6 @@ def process(kind, spotify_type, bandcamp_type, output_file, step_num, step_total
             log_err(f"Spotify epäonnistui: {e}")
             spotify = []
 
-        # Bandcamp
         log(f"Bandcamp: {artist['name']}...", "›")
         try:
             bandcamp = asyncio.run(
@@ -418,26 +387,21 @@ def process(kind, spotify_type, bandcamp_type, output_file, step_num, step_total
             bandcamp = fallback_from_previous(previous, artist["name"])
             log(f"Aiemmasta datasta: {len(bandcamp)} {kind}", "↺")
 
-        # Yhdistä
         log("Yhdistetään...", "🔀")
         merged = merge_releases(spotify, bandcamp)
         log_ok(f"Yhdistetty: {len(merged)} {kind}")
         all_releases.extend(merged)
 
-    # Lajittele
     all_releases.sort(key=lambda x: x.get("release_date", ""), reverse=True)
 
-    # Lataa kansikuvat
     print(f"\n📥 Ladataan kansikuvat {COVERS_DIR}/...", flush=True)
     for item in all_releases:
         local_path = download_cover(item["cover"], item["title"])
         item["cover"] = local_path
 
-    # Tallenna
     with open(output_path, "w", encoding="utf-8") as f:
         json.dump(all_releases, f, ensure_ascii=False, indent=2)
 
-    # Yhteenveto
     mpjv_count = sum(1 for r in all_releases if r["artist"] == "MpjV")
     iota_count = sum(1 for r in all_releases if r["artist"] == "Iota Dra")
     log_ok(f"Tallennettu {len(all_releases)} {kind} → {output_file}")
@@ -453,21 +417,15 @@ def main():
     start_time = time.time()
     print_banner()
 
-    # Tarkista .env ja Spotifyn avaimet
-    if not os.path.exists(ENV_PATH):
-        print(f"⚠️  .env-tiedostoa ei löytynyt: {ENV_PATH}")
-        print("    Spotify-haut ohitetaan. Käytetään vain Bandcampia.")
-        print()
-    elif not SPOTIFY_CLIENT_ID or not SPOTIFY_CLIENT_SECRET:
-        print(f"⚠️  SPOTIFY_CLIENT_ID tai SPOTIFY_CLIENT_SECRET puuttuu!")
-        print(f"    Tarkista tiedosto: {ENV_PATH}")
+    if not SPOTIFY_CLIENT_ID or not SPOTIFY_CLIENT_SECRET:
+        print("⚠️  Spotify-avaimet puuttuvat skriptistä!")
+        print("    Tarkista SPOTIFY_CLIENT_ID ja SPOTIFY_CLIENT_SECRET.")
         print("    Spotify-haut ohitetaan. Käytetään vain Bandcampia.")
         print()
 
     total_albums = 0
     total_tracks = 0
 
-    # Vaihe 1: Albumit
     try:
         total_albums = process(
             "albumia", "album", "album", ALBUMS_FILE,
@@ -476,7 +434,6 @@ def main():
     except Exception as e:
         log_err(f"Albumeiden käsittely epäonnistui: {e}")
 
-    # Vaihe 2: Singlet
     try:
         total_tracks = process(
             "singleä", "single", "track", TRACKS_FILE,
@@ -485,7 +442,6 @@ def main():
     except Exception as e:
         log_err(f"Singlejen käsittely epäonnistui: {e}")
 
-    # Loppuyhteenveto
     elapsed = time.time() - start_time
 
     print()
@@ -514,7 +470,6 @@ if __name__ == "__main__":
         print(f"\n\n  ✗ Odottamaton virhe: {e}\n")
         exit_code = 1
 
-    # Pysäytä konsoli, jos ajetaan .exe:nä kaksoisklikkaamalla
     if getattr(sys, 'frozen', False) and "--no-pause" not in sys.argv:
         input("  Paina Enter sulkeaksesi...")
 
