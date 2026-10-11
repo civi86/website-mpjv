@@ -23,10 +23,26 @@ import spotipy
 from spotipy.oauth2 import SpotifyClientCredentials
 from bandcamp_async_api import BandcampAPIClient
 
-load_dotenv()
+
+# ============================================
+# POLKUAPURI — toimii sekä .py:nä että .exe:nä
+# ============================================
+def get_base_dir():
+    """Palauttaa kansion, jossa .exe sijaitsee (tai skripti, jos ajetaan .py:nä)."""
+    if getattr(sys, 'frozen', False):
+        return os.path.dirname(sys.executable)
+    return os.path.dirname(os.path.abspath(__file__))
+
+
+BASE_DIR = get_base_dir()
+
+# Lue .env-tiedosto .exe:n (tai skriptin) vierestä
+ENV_PATH = os.path.join(BASE_DIR, ".env")
+load_dotenv(ENV_PATH)
 
 SPOTIFY_CLIENT_ID = os.getenv("SPOTIFY_CLIENT_ID")
 SPOTIFY_CLIENT_SECRET = os.getenv("SPOTIFY_CLIENT_SECRET")
+
 
 # Artistit
 ARTISTS = [
@@ -84,13 +100,6 @@ def print_banner():
     print()
 
 
-def get_base_dir():
-    """Palauttaa kansion, jossa .exe sijaitsee (tai skripti, jos ajetaan .py:nä)."""
-    if getattr(sys, 'frozen', False):
-        return os.path.dirname(sys.executable)
-    return os.path.dirname(os.path.abspath(__file__))
-
-
 # ============================================
 # APUFUNKTIOT
 # ============================================
@@ -123,10 +132,11 @@ def bandcamp_cover_url(art_id):
 
 def load_bandcamp_overrides():
     """Lataa käsin määritellyt Bandcamp-URLit."""
-    if not os.path.exists(OVERRIDES_FILE):
+    overrides_path = os.path.join(BASE_DIR, OVERRIDES_FILE)
+    if not os.path.exists(overrides_path):
         return {}
     try:
-        with open(OVERRIDES_FILE, encoding="utf-8") as f:
+        with open(overrides_path, encoding="utf-8") as f:
             return json.load(f)
     except Exception:
         return {}
@@ -187,17 +197,19 @@ def download_cover(url, title):
     if url.startswith("images/"):
         return url
 
-    os.makedirs(COVERS_DIR, exist_ok=True)
+    covers_dir = os.path.join(BASE_DIR, COVERS_DIR)
+    os.makedirs(covers_dir, exist_ok=True)
 
     ext = ".jpg"
     hash_part = hashlib.md5(url.encode()).hexdigest()[:12]
     safe_title = "".join(c if c.isalnum() or c in "-_" else "_" for c in title)
     filename = f"{safe_title}_{hash_part}{ext}"
-    filepath = os.path.join(COVERS_DIR, filename)
+    filepath = os.path.join(covers_dir, filename)
 
     if os.path.exists(filepath):
         log(f"↺ {filename} (jo olemassa)", "·")
-        return filepath.replace("\\", "/")
+        # Palauta suhteellinen polku sivustoa varten
+        return f"{COVERS_DIR}/{filename}"
 
     try:
         req = urllib.request.Request(
@@ -212,7 +224,7 @@ def download_cover(url, title):
             with open(filepath, "wb") as f:
                 f.write(response.read())
         log(f"⬇ {filename}", "·")
-        return filepath.replace("\\", "/")
+        return f"{COVERS_DIR}/{filename}"
     except Exception as e:
         log_err(f"Lataus epäonnistui: {title} ({e})")
         return url
@@ -220,10 +232,11 @@ def download_cover(url, title):
 
 def load_previous(file):
     """Lataa aiemman JSON-tiedoston — fallbackia varten."""
-    if not os.path.exists(file):
+    path = os.path.join(BASE_DIR, file)
+    if not os.path.exists(path):
         return []
     try:
-        with open(file, encoding="utf-8") as f:
+        with open(path, encoding="utf-8") as f:
             return json.load(f)
     except Exception:
         return []
@@ -234,6 +247,12 @@ def load_previous(file):
 # ============================================
 def fetch_spotify(artist_name, artist_id, album_type):
     """Hakee Spotifysta joko albumit tai singlet tietylle artistille."""
+    if not SPOTIFY_CLIENT_ID or not SPOTIFY_CLIENT_SECRET:
+        raise RuntimeError(
+            "SPOTIFY_CLIENT_ID tai SPOTIFY_CLIENT_SECRET puuttuu. "
+            f"Tarkista .env-tiedosto: {ENV_PATH}"
+        )
+
     auth = SpotifyClientCredentials(
         client_id=SPOTIFY_CLIENT_ID,
         client_secret=SPOTIFY_CLIENT_SECRET,
@@ -369,8 +388,7 @@ def fallback_from_previous(previous, artist_name):
 def process(kind, spotify_type, bandcamp_type, output_file, step_num, step_total):
     """Hakee ja tallentaa joko albumit tai singlet molemmilta artisteilta."""
     all_releases = []
-    base_dir = get_base_dir()
-    output_path = os.path.join(base_dir, output_file)
+    output_path = os.path.join(BASE_DIR, output_file)
 
     for artist in ARTISTS:
         # Spotify
@@ -396,7 +414,7 @@ def process(kind, spotify_type, bandcamp_type, output_file, step_num, step_total
             log_ok(f"Bandcamp: {len(bandcamp)} {kind}")
         except Exception as e:
             log_warn(f"Bandcamp epäonnistui: {e}")
-            previous = load_previous(output_path)
+            previous = load_previous(output_file)
             bandcamp = fallback_from_previous(previous, artist["name"])
             log(f"Aiemmasta datasta: {len(bandcamp)} {kind}", "↺")
 
@@ -435,6 +453,17 @@ def main():
     start_time = time.time()
     print_banner()
 
+    # Tarkista .env ja Spotifyn avaimet
+    if not os.path.exists(ENV_PATH):
+        print(f"⚠️  .env-tiedostoa ei löytynyt: {ENV_PATH}")
+        print("    Spotify-haut ohitetaan. Käytetään vain Bandcampia.")
+        print()
+    elif not SPOTIFY_CLIENT_ID or not SPOTIFY_CLIENT_SECRET:
+        print(f"⚠️  SPOTIFY_CLIENT_ID tai SPOTIFY_CLIENT_SECRET puuttuu!")
+        print(f"    Tarkista tiedosto: {ENV_PATH}")
+        print("    Spotify-haut ohitetaan. Käytetään vain Bandcampia.")
+        print()
+
     total_albums = 0
     total_tracks = 0
 
@@ -458,7 +487,6 @@ def main():
 
     # Loppuyhteenveto
     elapsed = time.time() - start_time
-    base_dir = get_base_dir()
 
     print()
     print("╔══════════════════════════════════════════╗")
@@ -470,7 +498,7 @@ def main():
     print(f"  Albumeja: {total_albums}")
     print(f"  Singlejä: {total_tracks}")
     print(f"  Kesto: {elapsed:.1f} s")
-    print(f"  Kansio: {base_dir}")
+    print(f"  Kansio: {BASE_DIR}")
     print()
 
     return 0 if (total_albums or total_tracks) else 1
