@@ -10,7 +10,9 @@ Käyttää bandcamp_urls.json-tiedostoa ohittamaan virheelliset slugit
 
 import os
 import re
+import sys
 import json
+import time
 import asyncio
 import hashlib
 import urllib.request
@@ -46,6 +48,47 @@ ALBUMS_FILE = "albums.json"
 TRACKS_FILE = "tracks.json"
 COVERS_DIR = "images/covers"
 OVERRIDES_FILE = "bandcamp_urls.json"
+
+
+# ============================================
+# KOMENTOKEHOTTEEN APUFUNKTIOT
+# ============================================
+def log(msg, symbol="›"):
+    """Tulostaa viestin sisennyksellä ja symbolilla."""
+    print(f"  {symbol} {msg}", flush=True)
+
+
+def log_step(step_num, total, msg):
+    """Tulostaa vaiheen 'X/Y' -muodossa."""
+    print(f"\n[{step_num}/{total}] {msg}", flush=True)
+
+
+def log_ok(msg):
+    print(f"  ✓ {msg}", flush=True)
+
+
+def log_warn(msg):
+    print(f"  ⚠ {msg}", flush=True)
+
+
+def log_err(msg):
+    print(f"  ✗ {msg}", flush=True)
+
+
+def print_banner():
+    print()
+    print("╔══════════════════════════════════════════╗")
+    print("║   MpjV — Bandcamp & Spotify Päivitys     ║")
+    print("║   Hakee albumit ja singlet               ║")
+    print("╚══════════════════════════════════════════╝")
+    print()
+
+
+def get_base_dir():
+    """Palauttaa kansion, jossa .exe sijaitsee (tai skripti, jos ajetaan .py:nä)."""
+    if getattr(sys, 'frozen', False):
+        return os.path.dirname(sys.executable)
+    return os.path.dirname(os.path.abspath(__file__))
 
 
 # ============================================
@@ -153,6 +196,7 @@ def download_cover(url, title):
     filepath = os.path.join(COVERS_DIR, filename)
 
     if os.path.exists(filepath):
+        log(f"↺ {filename} (jo olemassa)", "·")
         return filepath.replace("\\", "/")
 
     try:
@@ -167,10 +211,10 @@ def download_cover(url, title):
         with urllib.request.urlopen(req, timeout=15) as response:
             with open(filepath, "wb") as f:
                 f.write(response.read())
-        print(f"   ⬇  {filename}")
+        log(f"⬇ {filename}", "·")
         return filepath.replace("\\", "/")
     except Exception as e:
-        print(f"   ❌ Lataus epäonnistui: {title} ({e})")
+        log_err(f"Lataus epäonnistui: {title} ({e})")
         return url
 
 
@@ -320,18 +364,26 @@ def fallback_from_previous(previous, artist_name):
 
 
 # ============================================
-# MAIN
+# PROCESS
 # ============================================
-def process(kind, spotify_type, bandcamp_type, output_file):
+def process(kind, spotify_type, bandcamp_type, output_file, step_num, step_total):
     """Hakee ja tallentaa joko albumit tai singlet molemmilta artisteilta."""
     all_releases = []
+    base_dir = get_base_dir()
+    output_path = os.path.join(base_dir, output_file)
 
     for artist in ARTISTS:
-        print(f"\n🎵 {artist['name']} — {kind} Spotifysta...")
-        spotify = fetch_spotify(artist["name"], artist["spotify_id"], spotify_type)
-        print(f"   → {len(spotify)} {kind}")
+        # Spotify
+        log_step(step_num, step_total, f"{kind.capitalize()} — {artist['name']} (Spotify)")
+        try:
+            spotify = fetch_spotify(artist["name"], artist["spotify_id"], spotify_type)
+            log_ok(f"Spotify: {len(spotify)} {kind}")
+        except Exception as e:
+            log_err(f"Spotify epäonnistui: {e}")
+            spotify = []
 
-        print(f"🎵 {artist['name']} — {kind} Bandcampista...")
+        # Bandcamp
+        log(f"Bandcamp: {artist['name']}...", "›")
         try:
             bandcamp = asyncio.run(
                 fetch_bandcamp(
@@ -341,43 +393,101 @@ def process(kind, spotify_type, bandcamp_type, output_file):
                     bandcamp_type,
                 )
             )
-            print(f"   → {len(bandcamp)} {kind}")
+            log_ok(f"Bandcamp: {len(bandcamp)} {kind}")
         except Exception as e:
-            print(f"   ⚠️  Bandcamp epäonnistui: {e}")
-            previous = load_previous(output_file)
+            log_warn(f"Bandcamp epäonnistui: {e}")
+            previous = load_previous(output_path)
             bandcamp = fallback_from_previous(previous, artist["name"])
-            print(f"   → {len(bandcamp)} {kind} aiemmasta datasta")
+            log(f"Aiemmasta datasta: {len(bandcamp)} {kind}", "↺")
 
-        print("🔀 Yhdistetään...")
+        # Yhdistä
+        log("Yhdistetään...", "🔀")
         merged = merge_releases(spotify, bandcamp)
+        log_ok(f"Yhdistetty: {len(merged)} {kind}")
         all_releases.extend(merged)
 
-    # Lajittele kaikki uusin ensin
+    # Lajittele
     all_releases.sort(key=lambda x: x.get("release_date", ""), reverse=True)
 
     # Lataa kansikuvat
-    print(f"\n📥 Ladataan kansikuvat {COVERS_DIR}/...")
+    print(f"\n📥 Ladataan kansikuvat {COVERS_DIR}/...", flush=True)
     for item in all_releases:
         local_path = download_cover(item["cover"], item["title"])
         item["cover"] = local_path
 
-    with open(output_file, "w", encoding="utf-8") as f:
+    # Tallenna
+    with open(output_path, "w", encoding="utf-8") as f:
         json.dump(all_releases, f, ensure_ascii=False, indent=2)
 
     # Yhteenveto
     mpjv_count = sum(1 for r in all_releases if r["artist"] == "MpjV")
     iota_count = sum(1 for r in all_releases if r["artist"] == "Iota Dra")
-    print(f"✅ Tallennettu {len(all_releases)} {kind} → {output_file}")
-    print(f"   MpjV: {mpjv_count}, Iota Dra: {iota_count}")
+    log_ok(f"Tallennettu {len(all_releases)} {kind} → {output_file}")
+    log(f"MpjV: {mpjv_count}, Iota Dra: {iota_count}", "·")
+
+    return len(all_releases)
 
 
+# ============================================
+# MAIN
+# ============================================
 def main():
-    # Albumit
-    process("albumia", "album", "album", ALBUMS_FILE)
+    start_time = time.time()
+    print_banner()
 
-    # Singlet
-    process("singleä", "single", "track", TRACKS_FILE)
+    total_albums = 0
+    total_tracks = 0
+
+    # Vaihe 1: Albumit
+    try:
+        total_albums = process(
+            "albumia", "album", "album", ALBUMS_FILE,
+            step_num=1, step_total=2
+        )
+    except Exception as e:
+        log_err(f"Albumeiden käsittely epäonnistui: {e}")
+
+    # Vaihe 2: Singlet
+    try:
+        total_tracks = process(
+            "singleä", "single", "track", TRACKS_FILE,
+            step_num=2, step_total=2
+        )
+    except Exception as e:
+        log_err(f"Singlejen käsittely epäonnistui: {e}")
+
+    # Loppuyhteenveto
+    elapsed = time.time() - start_time
+    base_dir = get_base_dir()
+
+    print()
+    print("╔══════════════════════════════════════════╗")
+    if total_albums or total_tracks:
+        print("║   ✓ PÄIVITYS VALMIS                      ║")
+    else:
+        print("║   ⚠ PÄIVITYS EPÄONNISTUI                 ║")
+    print("╚══════════════════════════════════════════╝")
+    print(f"  Albumeja: {total_albums}")
+    print(f"  Singlejä: {total_tracks}")
+    print(f"  Kesto: {elapsed:.1f} s")
+    print(f"  Kansio: {base_dir}")
+    print()
+
+    return 0 if (total_albums or total_tracks) else 1
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        exit_code = main()
+    except KeyboardInterrupt:
+        print("\n\n  ⚠ Keskeytetty käyttäjän toimesta.\n")
+        exit_code = 130
+    except Exception as e:
+        print(f"\n\n  ✗ Odottamaton virhe: {e}\n")
+        exit_code = 1
+
+    # Pysäytä konsoli, jos ajetaan .exe:nä kaksoisklikkaamalla
+    if getattr(sys, 'frozen', False) and "--no-pause" not in sys.argv:
+        input("  Paina Enter sulkeaksesi...")
+
+    sys.exit(exit_code)
