@@ -139,17 +139,32 @@ BANDCAMP_OVERRIDES = load_bandcamp_overrides()
 
 
 def bandcamp_item_url(item_type, item_id, title, subdomain, artist_name=""):
+    """
+    Rakentaa Bandcamp-linkin.
+    1. Override: "Otsikko|tyyppi" (esim. "Frostmoor|track")
+    2. Override: pelkkä "Otsikko" (fallback)
+    3. Slug otsikosta
+    4. Numeerinen item_id
+    """
+    # 1. Tarkista override tyypin kanssa
     if artist_name and artist_name in BANDCAMP_OVERRIDES:
         artist_overrides = BANDCAMP_OVERRIDES[artist_name]
+        key_with_type = f"{title}|{item_type}"
+        if key_with_type in artist_overrides:
+            return artist_overrides[key_with_type]
+
+        # 2. Tarkista override pelkällä otsikolla
         if title in artist_overrides:
             return artist_overrides[title]
 
+    # 3. Slug otsikosta
     path = "track" if item_type == "track" else "album"
     if title:
         slug = slugify(title)
         if slug:
             return f"https://{subdomain}.bandcamp.com/{path}/{slug}"
 
+    # 4. Fallback: item_id
     if not item_id:
         return ""
 
@@ -177,7 +192,7 @@ def download_cover(url, title):
 
     if url.startswith("images/"):
         return url
-
+ 
     covers_dir = os.path.join(BASE_DIR, COVERS_DIR)
     os.makedirs(covers_dir, exist_ok=True)
 
