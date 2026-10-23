@@ -12,7 +12,7 @@
     "artist": "MpjV",
     "release_date": "2026-07-15",
     "cover": "images/covers/WITCHERY_442b9b1a1ec5.jpg",
-    "spotify_url": "https://open.spotify.com/album/6qtCAdSc2RkD7nTMf2i07e",
+    "spotify_url": "",
     "bandcamp_url": "https://mpjv.bandcamp.com/album/witchery"
   },
   {
@@ -20,7 +20,7 @@
     "artist": "MpjV",
     "release_date": "2026-07-08",
     "cover": "images/covers/Kuma_fc8b337e71d1.jpg",
-    "spotify_url": "https://open.spotify.com/album/2amzni90EAwcotMD5jWame",
+    "spotify_url": "",
     "bandcamp_url": "https://mpjv.bandcamp.com/album/kuma"
   },
   {
@@ -52,7 +52,7 @@
     "artist": "MpjV",
     "release_date": "2025-09-26",
     "cover": "images/covers/The_Art_of_Thought_and_Relevancy_23aec1341c7a.jpg",
-    "spotify_url": "https://open.spotify.com/album/1x7foi7hIp0GBugSGuNmFv",
+    "spotify_url": "",
     "bandcamp_url": "https://mpjv.bandcamp.com/album/the-art-of-thought-and-relevancy"
   },
   {
@@ -60,7 +60,7 @@
     "artist": "MpjV",
     "release_date": "2025-08-30",
     "cover": "images/covers/New_Era_3c1bc7f916ee.jpg",
-    "spotify_url": "https://open.spotify.com/album/4Ci5ZJWzbcpnWmjdpO2bvY",
+    "spotify_url": "",
     "bandcamp_url": "https://mpjv.bandcamp.com/album/new-era"
   },
   {
@@ -72,19 +72,11 @@
     "bandcamp_url": "https://mpjv.bandcamp.com/album/keylogger"
   },
   {
-    "title": "MPx Decoder",
-    "artist": "MpjV",
-    "release_date": "2025-07-02",
-    "cover": "images/covers/MPx_Decoder_2d878ae64b8f.jpg",
-    "spotify_url": "https://open.spotify.com/album/6cGMtowwrDsjLF9k6ftpAF",
-    "bandcamp_url": ""
-  },
-  {
     "title": "The Mind III",
     "artist": "MpjV",
     "release_date": "2025-06-10",
     "cover": "images/covers/The_Mind_III_ada3b1132059.jpg",
-    "spotify_url": "https://open.spotify.com/album/18GIayE4nczyYZ7XhKuLOd",
+    "spotify_url": "",
     "bandcamp_url": "https://mpjv.bandcamp.com/album/the-mind-iii"
   },
   {
@@ -92,7 +84,7 @@
     "artist": "MpjV",
     "release_date": "2025-06-07",
     "cover": "images/covers/The_Mind_II_1fb8d8ea6855.jpg",
-    "spotify_url": "https://open.spotify.com/album/4rkcnNmdMwz0HkfTZl6maq",
+    "spotify_url": "",
     "bandcamp_url": "https://mpjv.bandcamp.com/album/the-mind-ii"
   },
   {
@@ -100,7 +92,7 @@
     "artist": "MpjV",
     "release_date": "2025-03-02",
     "cover": "images/covers/The_Mind_I_a9edc768dd1d.jpg",
-    "spotify_url": "https://open.spotify.com/album/1iyzqEztRTrIevpCmnv6zv",
+    "spotify_url": "",
     "bandcamp_url": "https://mpjv.bandcamp.com/album/the-mind-i"
   },
   {
@@ -108,7 +100,7 @@
     "artist": "MpjV",
     "release_date": "2024-09-07",
     "cover": "images/covers/REKONET_81692dd16e70.jpg",
-    "spotify_url": "https://open.spotify.com/album/4xTf3SNGTnCTRCmpm6H8Vq",
+    "spotify_url": "",
     "bandcamp_url": "https://mpjv.bandcamp.com/album/rekonet"
   },
   {
@@ -116,7 +108,7 @@
     "artist": "MpjV",
     "release_date": "2024-09-04",
     "cover": "images/covers/Labyrinth_8a131c3df518.jpg",
-    "spotify_url": "https://open.spotify.com/album/53gw0ldu3AnOihO7ULrmPu",
+    "spotify_url": "",
     "bandcamp_url": "https://mpjv.bandcamp.com/album/labyrinth"
   },
   {
@@ -132,7 +124,7 @@
     "artist": "Iota Dra",
     "release_date": "2024-01-15",
     "cover": "images/covers/Hypatia_ea14d07765b1.jpg",
-    "spotify_url": "https://open.spotify.com/album/3NS1cv8GsKgsQuqmFSik5x",
+    "spotify_url": "",
     "bandcamp_url": "https://iotadra.bandcamp.com/album/hypatia"
   },
   {
@@ -140,7 +132,7 @@
     "artist": "MpjV",
     "release_date": "2023-10-06",
     "cover": "images/covers/Scenes_from_a_Brighter_Future_38d128f3cb9a.jpg",
-    "spotify_url": "https://open.spotify.com/album/4C7OxxyYpreC20UPFxoWCo",
+    "spotify_url": "",
     "bandcamp_url": "https://mpjv.bandcamp.com/album/scenes-from-a-brighter-future"
   },
   {
@@ -164,7 +156,7 @@
     "artist": "MpjV",
     "release_date": "2023-02-03",
     "cover": "images/covers/free_gems__Deluxe_Edition__4548d165ebb5.jpg",
-    "spotify_url": "https://open.spotify.com/album/4ZPHYszsbaKGFbZGmO1YLe",
+    "spotify_url": "",
     "bandcamp_url": "https://mpjv.bandcamp.com/album/free-gems-deluxe-edition"
   },
   {
@@ -180,7 +172,7 @@
     "artist": "Iota Dra",
     "release_date": "2022-05-19",
     "cover": "images/covers/HR_5744_2b8307cab553.jpg",
-    "spotify_url": "https://open.spotify.com/album/7D7MgE1RSZAyRErjrp9JnE",
+    "spotify_url": "",
     "bandcamp_url": "https://iotadra.bandcamp.com/album/hr-5744"
   },
   {
@@ -212,7 +204,7 @@
     "artist": "MpjV",
     "release_date": "2020-01-25",
     "cover": "images/covers/Schizo_89999d38df75.jpg",
-    "spotify_url": "https://open.spotify.com/album/2HPIpQ1jkfJfFZP6LNYJcx",
+    "spotify_url": "",
     "bandcamp_url": "https://mpjv.bandcamp.com/album/schizo"
   },
   {
@@ -228,7 +220,7 @@
     "artist": "MpjV",
     "release_date": "2019-06-20",
     "cover": "images/covers/Mushroom_Cloud_2615d3f81e10.jpg",
-    "spotify_url": "https://open.spotify.com/album/4MqbFRNBrAD8Y8p3vcHQHe",
+    "spotify_url": "",
     "bandcamp_url": "https://mpjv.bandcamp.com/album/mushroom-cloud"
   },
   {
@@ -236,7 +228,7 @@
     "artist": "MpjV",
     "release_date": "2019-01-01",
     "cover": "images/covers/Trash_Can_3e9f3f431178.jpg",
-    "spotify_url": "https://open.spotify.com/album/6yyc7ai8UolS8lhTIonw4R",
+    "spotify_url": "",
     "bandcamp_url": "https://mpjv.bandcamp.com/album/trash-can"
   }
 ]
